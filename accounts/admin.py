@@ -10,12 +10,18 @@ class UserAdmin(BaseUserAdmin):
     
     readonly_fields = ('created_at',)
     
-    list_display = ('username', 'email', 'first_name', 'last_name', 'role', 'is_active', 'created_at')
+    list_display = ('get_display_name', 'username', 'email', 'role', 'is_active', 'created_at')
     list_filter = BaseUserAdmin.list_filter + ('role',)
+    
+    def get_display_name(self, obj):
+        return obj.get_display_name()
+    get_display_name.short_description = '顯示名稱'
+    get_display_name.admin_order_field = 'first_name'
     
     def get_fieldsets(self, request, obj=None):
         if not obj:
             return self.add_fieldsets + (
                 ('角色設定', {'fields': ('role',)}),
+                ('個人資訊', {'fields': ('first_name', 'last_name')}),
             )
         return super().get_fieldsets(request, obj)
