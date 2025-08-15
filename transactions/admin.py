@@ -73,3 +73,14 @@ class TransactionAdmin(admin.ModelAdmin):
         if not change:  # 新增時
             obj.cs_user = request.user
         super().save_model(request, obj, form, change)
+
+    def get_cs_user_display(self, obj):
+        """在列表中顯示客服名稱"""
+        if hasattr(obj.cs_user, 'get_display_name'):
+            return obj.cs_user.get_display_name()
+        else:
+            full_name = obj.cs_user.get_full_name().strip()
+        if full_name:
+            return f"{full_name}({obj.cs_user.username})"
+        else:
+            return obj.cs_user.username

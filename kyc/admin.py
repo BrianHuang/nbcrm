@@ -3,7 +3,6 @@ from django.utils.html import format_html
 from django import forms
 from .models import KYCRecord
 from customers.models import Customer
-from accounts.models import User
 
 class KYCRecordAdminForm(forms.ModelForm):
     """自定義KYC表單"""
@@ -27,7 +26,7 @@ class KYCRecordAdmin(admin.ModelAdmin):
         'verification_account', 
         'get_file_preview',
         'file_description',
-        'get_uploaded_by_display', 
+        'get_uploaded_by_display',
         'uploaded_at'
     )
     list_filter = ('uploaded_at', 'uploaded_by', 'bank_code')
@@ -37,18 +36,10 @@ class KYCRecordAdmin(admin.ModelAdmin):
         'bank_code',
         'verification_account', 
         'file_description',
-        'uploaded_by__username',
-        'uploaded_by__first_name',
-        'uploaded_by__last_name'
+        'uploaded_by__username'
     )
     readonly_fields = ('uploaded_at', 'get_file_preview', 'get_file_info')
     list_per_page = 25
-    
-    def get_uploaded_by_display(self, obj):
-        """顯示上傳客服的名字(使用者名稱)"""
-        return obj.uploaded_by.get_display_name()
-    get_uploaded_by_display.short_description = '上傳客服'
-    get_uploaded_by_display.admin_order_field = 'uploaded_by__first_name'
     
     def get_fieldsets(self, request, obj=None):
         """根據用戶角色和操作類型動態設置fieldsets"""
@@ -125,6 +116,20 @@ class KYCRecordAdmin(admin.ModelAdmin):
     get_customer_display.short_description = '客戶'
     get_customer_display.admin_order_field = 'customer__name'
     
+    def get_uploaded_by_display(self, obj):
+        """在列表中顯示上傳客服名稱"""
+        if hasattr(obj.uploaded_by, 'get_display_name'):
+            return obj.uploaded_by.get_display_name()
+        else:
+            # 備用顯示邏輯
+            full_name = obj.uploaded_by.get_full_name().strip()
+            if full_name:
+                return f"{full_name}({obj.uploaded_by.username})"
+            else:
+                return obj.uploaded_by.username
+    get_uploaded_by_display.short_description = '上傳客服'
+    get_uploaded_by_display.admin_order_field = 'uploaded_by__first_name'
+    
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         """自定義外鍵欄位顯示"""
         if db_field.name == "customer":
@@ -133,13 +138,24 @@ class KYCRecordAdmin(admin.ModelAdmin):
             formfield.label_from_instance = lambda obj: obj.get_display_name()
             return formfield
         elif db_field.name == "uploaded_by":
+            from accounts.models import User
             kwargs["initial"] = request.user
             if not request.user.is_admin():
                 kwargs["queryset"] = User.objects.filter(id=request.user.id)
             else:
                 kwargs["queryset"] = User.objects.filter(role__in=['admin', 'cs']).order_by('first_name', 'username')
             formfield = super().formfield_for_foreignkey(db_field, request, **kwargs)
-            formfield.label_from_instance = lambda obj: obj.get_display_name()
+            # 設置安全的標籤顯示函數
+            def safe_label_from_instance(obj):
+                if hasattr(obj, 'get_display_name'):
+                    return obj.get_display_name()
+                else:
+                    full_name = obj.get_full_name().strip()
+                    if full_name:
+                        return f"{full_name}({obj.username})"
+                    else:
+                        return obj.username
+            formfield.label_from_instance = safe_label_from_instance
             return formfield
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
     

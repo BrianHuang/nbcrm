@@ -15,7 +15,20 @@ class User(AbstractUser):
         verbose_name_plural = '使用者'
     
     def __str__(self):
-        return f"{self.username} ({self.get_role_display()})"
+        """顯示格式：名字(使用者名稱)"""
+        full_name = self.get_full_name().strip()
+        if full_name:
+            return f"{full_name}({self.username})"
+        else:
+            return self.username
+    
+    def get_display_name(self):
+        """返回完整的顯示名稱"""
+        full_name = self.get_full_name().strip()
+        if full_name:
+            return f"{full_name}({self.username})"
+        else:
+            return self.username
     
     def is_admin(self):
         return self.role == 'admin'
