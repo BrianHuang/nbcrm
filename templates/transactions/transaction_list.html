@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+
+{% block title %}交易記錄 - N8幣客戶管理系統{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>交易記錄</h1>
+    <a href="/admin/transactions/transaction/add/" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> 新增交易
+    </a>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-10">
+                <input type="text" class="form-control" name="search" 
+                       value="{{ search_query }}" placeholder="搜尋客戶姓名或客服名稱...">
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-outline-primary w-100">
+                    <i class="bi bi-search"></i> 搜尋
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        {% if transactions %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>客戶</th>
+                            <th>交易類型</th>
+                            <th>N8幣數量</th>
+                            <th>台幣金額</th>
+                            <th>客服</th>
+                            <th>時間</th>
+                            <th>快速回覆</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for transaction in transactions %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'customers:customer_detail' transaction.customer.id %}" class="text-decoration-none">
+                                    {{ transaction.customer.name }}
+                                </a>
+                            </td>
+                            <td>
+                                <span class="badge bg-{% if transaction.transaction_type == 'sell' %}success{% else %}primary{% endif %}">
+                                    {{ transaction.get_transaction_type_display }}
+                                </span>
+                            </td>
+                            <td>{{ transaction.n8_amount }}</td>
+                            <td>NT$ {{ transaction.twd_amount|floatformat:0 }}</td>
+                            <td>{{ transaction.cs_user.username }}</td>
+                            <td>{{ transaction.created_at|date:"m/d H:i" }}</td>
+                            <td>
+                                {% if transaction.quick_reply %}
+                                    <span class="badge bg-success">是</span>
+                                {% else %}
+                                    <span class="badge bg-warning">否</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-arrow-left-right display-1 text-muted"></i>
+                <p class="text-muted">
+                    {% if search_query %}
+                        沒有找到符合 "{{ search_query }}" 的交易記錄
+                    {% else %}
+                        目前沒有交易記錄
+                    {% endif %}
+                </p>
+                <a href="/admin/transactions/transaction/add/" class="btn btn-primary">
+                    <i class="bi bi-plus-circle"></i> 新增交易記錄
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,20 @@
+{% extends 'registration/base.html' %}
+
+{% block title %}已登出 - N8幣客戶管理系統{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="bi bi-check-circle-fill text-success display-4 mb-3"></i>
+                <h4 class="card-title">已成功登出</h4>
+                <p class="card-text text-muted">感謝您使用 N8幣客戶管理系統</p>
+                <a href="{% url 'login' %}" class="btn btn-primary">
+                    <i class="bi bi-box-arrow-in-right"></i> 重新登入
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
