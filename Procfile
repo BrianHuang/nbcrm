@@ -1,0 +1,1 @@
+web: gunicorn nbcrm.wsgi:application
