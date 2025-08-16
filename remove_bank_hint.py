@@ -1,4 +1,16 @@
-// KYC 內聯表單增強 JavaScript
+#!/usr/bin/env python3
+"""
+移除銀行代碼自動提示功能
+"""
+
+from pathlib import Path
+
+def update_inline_js_remove_bank_hint():
+    """更新 JavaScript，移除銀行代碼提示"""
+    
+    print("📝 更新 JavaScript，移除銀行代碼提示...")
+    
+    js_content = '''// KYC 內聯表單增強 JavaScript
 
 (function($) {
     $(document).ready(function() {
@@ -72,14 +84,14 @@
                     }
                     
                     // 銀行代碼格式檢查
-                    if (bankCode && !/^\d{3}$/.test(bankCode)) {
+                    if (bankCode && !/^\\d{3}$/.test(bankCode)) {
                         alert('銀行代碼必須是3位數字');
                         hasError = true;
                         return false;
                     }
                     
                     // 驗證帳戶格式檢查
-                    if (verifyAccount && !/^\d+$/.test(verifyAccount)) {
+                    if (verifyAccount && !/^\\d+$/.test(verifyAccount)) {
                         alert('驗證帳戶只能包含數字');
                         hasError = true;
                         return false;
@@ -111,3 +123,49 @@
         
     });
 })(django.jQuery);
+'''
+    
+    js_dir = Path("static") / "admin" / "js"
+    js_dir.mkdir(parents=True, exist_ok=True)
+    
+    js_file = js_dir / "kyc_inline.js"
+    with open(js_file, 'w', encoding='utf-8') as f:
+        f.write(js_content)
+    print("✅ 更新 JavaScript 文件")
+
+def main():
+    """主函數"""
+    print("🔧 移除銀行代碼自動提示功能")
+    print("=" * 30)
+    
+    # 檢查是否在正確的目錄
+    if not Path("manage.py").exists():
+        print("❌ 錯誤：請在 Django 項目根目錄執行此腳本")
+        return
+    
+    try:
+        # 更新 JavaScript
+        update_inline_js_remove_bank_hint()
+        
+        print("\n✅ 移除銀行代碼提示完成！")
+        print("\n📋 保留的功能：")
+        print("- ✅ 檔案上傳即時預覽")
+        print("- ✅ 檔案大小檢查（100MB）")
+        print("- ✅ 表單驗證和錯誤提示")
+        print("- ✅ 銀行代碼格式驗證（3位數字）")
+        print("- ✅ 驗證帳戶格式驗證（純數字）")
+        
+        print("\n🗑️ 移除的功能：")
+        print("- ❌ 銀行代碼自動提示")
+        print("- ❌ 銀行名稱顯示")
+        
+        print("\n🔧 接下來請執行：")
+        print("git add .")
+        print("git commit -m '移除銀行代碼自動提示功能'")
+        print("git push origin main")
+        
+    except Exception as e:
+        print(f"❌ 更新過程中出現錯誤：{e}")
+
+if __name__ == "__main__":
+    main()

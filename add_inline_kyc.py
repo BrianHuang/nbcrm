@@ -459,32 +459,7 @@ def create_inline_js():
             });
         }
         
-        // 自動填充功能
-        function setupAutoFill() {
-            $('.field-bank_code input').on('input', function() {
-                var bankCode = $(this).val();
-                var row = $(this).closest('tr');
-                var descField = row.find('.field-file_description input');
-                
-                // 常見銀行代碼自動提示
-                var bankNames = {
-                    '004': '台灣銀行',
-                    '005': '土地銀行',
-                    '006': '合作金庫',
-                    '007': '第一銀行',
-                    '008': '華南銀行',
-                    '009': '彰化銀行',
-                    '011': '上海銀行',
-                    '012': '台北富邦',
-                    '013': '國泰世華',
-                    '017': '兆豐銀行'
-                };
-                
-                if (bankNames[bankCode] && !descField.val()) {
-                    descField.attr('placeholder', bankNames[bankCode] + ' 相關文件');
-                }
-            });
-        }
+        // 移除銀行代碼自動提示功能
         
         // 表單驗證
         function setupValidation() {
@@ -531,13 +506,11 @@ def create_inline_js():
         
         // 初始化所有功能
         setupFilePreview();
-        setupAutoFill();
         setupValidation();
         
         // 當新增行時重新初始化
         $(document).on('formset:added', function() {
             setupFilePreview();
-            setupAutoFill();
         });
         
         // 美化新增按鈕
