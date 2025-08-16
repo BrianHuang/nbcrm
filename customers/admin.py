@@ -11,33 +11,45 @@ class CustomerAdminForm(forms.ModelForm):
         model = Customer
         fields = '__all__'
         widgets = {
-            'notes': forms.Textarea(attrs={'rows': 3, 'cols': 50}),  # 一半高度
-            'verified_accounts': forms.Textarea(attrs={'rows': 3, 'cols': 50}),  # 一半高度
+            'notes': forms.Textarea(attrs={'rows': 3, 'cols': 50}),
+            'verified_accounts': forms.Textarea(attrs={'rows': 3, 'cols': 50}),
+        }
+
+class KYCRecordInlineForm(forms.ModelForm):
+    """自定義 KYC 內聯表單"""
+    
+    class Meta:
+        from kyc.models import KYCRecord
+        model = KYCRecord
+        fields = '__all__'
+        widgets = {
+            'bank_code': forms.TextInput(attrs={'size': 8, 'placeholder': '3位數字'}),
+            'verification_account': forms.TextInput(attrs={'size': 15, 'placeholder': '帳號數字'}),
+            'file_description': forms.TextInput(attrs={'size': 30, 'placeholder': '檔案說明（選填）'}),
         }
 
 class KYCRecordInline(admin.TabularInline):
-    """KYC 記錄內聯顯示"""
+    """KYC 記錄內聯顯示 - 支援新增和編輯"""
     from kyc.models import KYCRecord
     model = KYCRecord
-    extra = 0  # 不顯示額外的空表單
-    can_delete = False  # 不允許在此處刪除
+    form = KYCRecordInlineForm
+    extra = 1  # 顯示 1 個空表單供新增
+    can_delete = True  # 允許刪除
     
-    fields = ('bank_code', 'verification_account', 'get_file_preview', 'file_description', 'get_uploaded_by_display', 'uploaded_at')
+    fields = ('bank_code', 'verification_account', 'file', 'get_file_preview', 'file_description', 'get_uploaded_by_display', 'uploaded_at')
     readonly_fields = ('get_file_preview', 'get_uploaded_by_display', 'uploaded_at')
     
-    def formfield_for_dbfield(self, db_field, request, **kwargs):
-        """自定義表單欄位"""
-        if db_field.name == 'bank_code':
-            kwargs['widget'] = forms.TextInput(attrs={'size': 8})  # 縮短銀行代碼欄位
-        elif db_field.name == 'verification_account':
-            kwargs['widget'] = forms.TextInput(attrs={'size': 15})  # 縮短驗證帳戶欄位
-        elif db_field.name == 'file_description':
-            kwargs['widget'] = forms.TextInput(attrs={'size': 30})  # 檔案說明用一行
-        return super().formfield_for_dbfield(db_field, request, **kwargs)
+    def get_formset(self, request, obj=None, **kwargs):
+        """自定義表單集，設置初始值"""
+        formset = super().get_formset(request, obj, **kwargs)
+        
+        # 保存 request 到 formset，以便在保存時使用
+        formset.request = request
+        return formset
     
     def get_file_preview(self, obj):
         """顯示檔案預覽（簡化版）"""
-        if not obj.file:
+        if not obj or not obj.file:
             return "無檔案"
         
         try:
@@ -69,10 +81,13 @@ class KYCRecordInline(admin.TabularInline):
         except Exception:
             return format_html('<span style="color: #dc3545;">載入失敗</span>')
     
-    get_file_preview.short_description = '檔案'
+    get_file_preview.short_description = '檔案預覽'
     
     def get_uploaded_by_display(self, obj):
         """顯示上傳者"""
+        if not obj or not obj.uploaded_by:
+            return "新記錄"
+        
         if hasattr(obj.uploaded_by, 'get_display_name'):
             return obj.uploaded_by.get_display_name()
         else:
@@ -84,9 +99,29 @@ class KYCRecordInline(admin.TabularInline):
     
     get_uploaded_by_display.short_description = '上傳客服'
     
+    def save_model(self, request, obj, form, change):
+        """保存 KYC 記錄時設置上傳者"""
+        if not change:  # 新增時
+            obj.uploaded_by = request.user
+        super().save_model(request, obj, form, change)
+    
     def has_add_permission(self, request, obj=None):
-        """不允許在此處新增"""
-        return False
+        """允許新增 KYC 記錄"""
+        return True
+    
+    def has_change_permission(self, request, obj=None):
+        """允許編輯 KYC 記錄"""
+        return True
+    
+    def has_delete_permission(self, request, obj=None):
+        """根據用戶角色決定刪除權限"""
+        if obj and hasattr(obj, 'uploaded_by'):
+            # 管理員可以刪除所有記錄，一般用戶只能刪除自己上傳的
+            if request.user.is_admin():
+                return True
+            elif hasattr(obj, 'uploaded_by'):
+                return obj.uploaded_by == request.user
+        return request.user.is_admin()
 
 @admin.register(Customer)
 class CustomerAdmin(admin.ModelAdmin):
@@ -100,7 +135,7 @@ class CustomerAdmin(admin.ModelAdmin):
     # 添加 KYC 記錄內聯
     inlines = [KYCRecordInline]
     
-    # 簡化的 fieldsets，不分組
+    # 簡化的 fieldsets
     fieldsets = (
         (None, {
             'fields': (
@@ -133,6 +168,21 @@ class CustomerAdmin(admin.ModelAdmin):
             )
     get_kyc_count.short_description = 'KYC 記錄'
     
+    def save_formset(self, request, form, formset, change):
+        """保存表單集時設置上傳者"""
+        instances = formset.save(commit=False)
+        
+        for instance in instances:
+            # 如果是新的 KYC 記錄，設置上傳者
+            if not instance.pk and hasattr(instance, 'uploaded_by'):
+                instance.uploaded_by = request.user
+            instance.save()
+        
+        # 刪除標記為刪除的實例
+        formset.save_m2m()
+        for obj in formset.deleted_objects:
+            obj.delete()
+    
     def get_readonly_fields(self, request, obj=None):
         if obj:  # 編輯時
             return self.readonly_fields
@@ -142,3 +192,4 @@ class CustomerAdmin(admin.ModelAdmin):
         css = {
             'all': ('admin/css/custom_customer_admin.css',)
         }
+        js = ('admin/js/kyc_inline.js',)
