@@ -1,0 +1,41 @@
+/* 自定義 Admin CSS */
+
+/* KYC 內聯表格樣式 */
+.tabular .kyc-file-preview {
+    text-align: center;
+    width: 80px;
+}
+
+.tabular .kyc-file-preview img {
+    border: 1px solid #ddd;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* KYC 摘要區塊樣式 */
+.kyc-summary {
+    background: #f8f9fa;
+    border-left: 4px solid #007cba;
+    padding: 15px;
+    margin: 10px 0;
+}
+
+/* 改善內聯表格的可讀性 */
+.tabular tr.has_original {
+    background: #f9f9f9;
+}
+
+.tabular tr.has_original:hover {
+    background: #f0f8ff;
+}
+
+/* 響應式改善 */
+@media (max-width: 768px) {
+    .tabular .kyc-file-preview {
+        width: 60px;
+    }
+    
+    .tabular .kyc-file-preview img {
+        max-width: 40px;
+        max-height: 40px;
+    }
+}
