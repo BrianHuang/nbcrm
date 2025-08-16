@@ -53,8 +53,9 @@ class KYCRecordAdmin(admin.ModelAdmin):
                         'fields': ('bank_code', 'verification_account'),
                         'description': '銀行代碼和驗證帳戶為選填欄位'
                     }),
-                    ('檔案資訊', {
+                    ('檔案資訊 (選填)', {
                         'fields': ('file', 'get_file_preview', 'file_description', 'get_file_info'),
+                        'description': '檔案上傳為選填，可只填寫銀行資訊，支援最大100MB檔案'
                     }),
                     ('上傳資訊', {
                         'fields': ('uploaded_by', 'uploaded_at'),
@@ -70,8 +71,9 @@ class KYCRecordAdmin(admin.ModelAdmin):
                         'fields': ('bank_code', 'verification_account'),
                         'description': '銀行代碼和驗證帳戶為選填欄位'
                     }),
-                    ('檔案資訊', {
+                    ('檔案資訊 (選填)', {
                         'fields': ('file', 'get_file_preview', 'file_description', 'get_file_info'),
+                        'description': '檔案上傳為選填，可只填寫銀行資訊，支援最大100MB檔案'
                     }),
                     ('上傳資訊', {
                         'fields': ('uploaded_at',),
@@ -88,8 +90,9 @@ class KYCRecordAdmin(admin.ModelAdmin):
                         'fields': ('bank_code', 'verification_account'),
                         'description': '銀行代碼和驗證帳戶為選填欄位'
                     }),
-                    ('檔案資訊', {
+                    ('檔案資訊 (選填)', {
                         'fields': ('file', 'file_description'),
+                        'description': '檔案上傳為選填，可只填寫銀行資訊，支援最大100MB檔案'
                     }),
                     ('上傳資訊', {
                         'fields': ('uploaded_by',),
@@ -105,8 +108,9 @@ class KYCRecordAdmin(admin.ModelAdmin):
                         'fields': ('bank_code', 'verification_account'),
                         'description': '銀行代碼和驗證帳戶為選填欄位'
                     }),
-                    ('檔案資訊', {
+                    ('檔案資訊 (選填)', {
                         'fields': ('file', 'file_description'),
+                        'description': '檔案上傳為選填，可只填寫銀行資訊'
                     }),
                 )
     
@@ -121,7 +125,6 @@ class KYCRecordAdmin(admin.ModelAdmin):
         if hasattr(obj.uploaded_by, 'get_display_name'):
             return obj.uploaded_by.get_display_name()
         else:
-            # 備用顯示邏輯
             full_name = obj.uploaded_by.get_full_name().strip()
             if full_name:
                 return f"{full_name}({obj.uploaded_by.username})"
@@ -145,7 +148,6 @@ class KYCRecordAdmin(admin.ModelAdmin):
             else:
                 kwargs["queryset"] = User.objects.filter(role__in=['admin', 'cs']).order_by('first_name', 'username')
             formfield = super().formfield_for_foreignkey(db_field, request, **kwargs)
-            # 設置安全的標籤顯示函數
             def safe_label_from_instance(obj):
                 if hasattr(obj, 'get_display_name'):
                     return obj.get_display_name()

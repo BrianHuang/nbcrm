@@ -36,16 +36,20 @@ class KYCRecord(models.Model):
         blank=True,
         null=True,
         validators=[RegexValidator(regex=r'^\d+$', message='只能填入數字')],
-        verbose_name='驗證帳戶'
+        verbose_name='驗證帳戶',
+        help_text='請填入數字帳號（選填）'
     )
     file = models.FileField(
         upload_to=kyc_upload_path, 
-        verbose_name='檔案'
+        verbose_name='檔案',
+        blank=True,
+        null=True,
+        help_text='支援圖片和影片檔案，檔案大小不超過100MB（選填）'
     )
     file_description = models.TextField(
         blank=True,
         verbose_name='檔案說明',
-        help_text='對此檔案的說明或備註'
+        help_text='對此檔案的說明或備註（選填）'
     )
     uploaded_at = models.DateTimeField(
         auto_now_add=True, 
@@ -60,16 +64,23 @@ class KYCRecord(models.Model):
     def __str__(self):
         bank_info = f"({self.bank_code})" if self.bank_code else ""
         account_info = f" - {self.verification_account}" if self.verification_account else ""
-        return f"{self.customer.name}{account_info}{bank_info}"
+        file_info = " [有檔案]" if self.file else " [無檔案]"
+        return f"{self.customer.name}{account_info}{bank_info}{file_info}"
     
     def get_file_extension(self):
-        return os.path.splitext(self.file.name)[1].lower()
+        if self.file:
+            return os.path.splitext(self.file.name)[1].lower()
+        return ""
     
     def is_image(self):
-        image_extensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp']
+        if not self.file:
+            return False
+        image_extensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.jfif']
         return self.get_file_extension() in image_extensions
     
     def is_video(self):
+        if not self.file:
+            return False
         video_extensions = ['.mp4', '.avi', '.mov', '.wmv', '.flv', '.webm']
         return self.get_file_extension() in video_extensions
     
@@ -83,4 +94,4 @@ class KYCRecord(models.Model):
                 return f"{size / 1024:.1f} KB"
             else:
                 return f"{size / (1024 * 1024):.1f} MB"
-        return "未知大小"
+        return "無檔案"
