@@ -1,4 +1,16 @@
-from django.contrib import admin
+#!/usr/bin/env python3
+"""
+修復客戶表單中 KYC 記錄 uploaded_by 空值錯誤
+"""
+
+from pathlib import Path
+
+def fix_customer_admin_uploaded_by():
+    """修復 customers/admin.py 中的 uploaded_by 問題"""
+    
+    print("🔧 修復 customers/admin.py 中的 uploaded_by 錯誤...")
+    
+    customer_admin_content = '''from django.contrib import admin
 from django.utils.html import format_html
 from django import forms
 from .models import Customer
@@ -11,13 +23,8 @@ class CustomerAdminForm(forms.ModelForm):
         model = Customer
         fields = '__all__'
         widgets = {
-            'name': forms.TextInput(attrs={'style': 'width: 120px;'}),  # 縮短姓名欄位
-            'line_nickname': forms.TextInput(attrs={'style': 'width: 120px;'}),  # 縮短Line暱稱
-            'n8_nickname': forms.TextInput(attrs={'style': 'width: 120px;'}),  # 縮短N8暱稱
-            'n8_phone': forms.TextInput(attrs={'style': 'width: 150px;'}),  # N8電話欄位
-            'n8_email': forms.EmailInput(attrs={'style': 'width: 200px;'}),  # N8信箱欄位
-            'notes': forms.Textarea(attrs={'rows': 3, 'cols': 50, 'style': 'width: 400px;'}),
-            'verified_accounts': forms.Textarea(attrs={'rows': 3, 'cols': 50, 'style': 'width: 400px;'}),
+            'notes': forms.Textarea(attrs={'rows': 3, 'cols': 50}),
+            'verified_accounts': forms.Textarea(attrs={'rows': 3, 'cols': 50}),
         }
 
 class KYCRecordInlineForm(forms.ModelForm):
@@ -126,14 +133,16 @@ class CustomerAdmin(admin.ModelAdmin):
     # 添加 KYC 記錄內聯
     inlines = [KYCRecordInline]
     
-    # 調整版面配置的 fieldsets
+    # 簡化的 fieldsets
     fieldsets = (
         (None, {
             'fields': (
-                ('name', 'line_nickname', 'n8_nickname'),  # 三個欄位同一列
-                ('n8_email', 'n8_phone'),  # N8信箱和電話同一列  
-                ('notes', 'verified_accounts'),  # 備註和驗證帳戶同一列
-                ('created_at', 'updated_at')  # 系統資訊同一列
+                ('name', 'line_nickname'),
+                ('n8_nickname', 'n8_phone'), 
+                'n8_email',
+                'notes',
+                'verified_accounts',
+                ('created_at', 'updated_at')
             )
         }),
     )
@@ -188,6 +197,104 @@ class CustomerAdmin(admin.ModelAdmin):
     
     class Media:
         css = {
-            'all': ('admin/css/custom_customer_layout.css',)
+            'all': ('admin/css/custom_customer_admin.css',)
         }
         js = ('admin/js/kyc_inline.js',)
+'''
+    
+    customer_admin_path = Path("customers") / "admin.py"
+    with open(customer_admin_path, 'w', encoding='utf-8') as f:
+        f.write(customer_admin_content)
+    print("✅ 修復 customers/admin.py")
+
+def create_migration_fix():
+    """創建修復現有 null 值的 migration"""
+    
+    print("🔧 創建修復現有 null 值的 migration...")
+    
+    migration_content = '''# Generated to fix existing null uploaded_by values
+from django.db import migrations
+from django.contrib.auth import get_user_model
+
+def fix_null_uploaded_by(apps, schema_editor):
+    """修復現有的 null uploaded_by 值"""
+    KYCRecord = apps.get_model('kyc', 'KYCRecord')
+    User = get_user_model()
+    
+    # 找到一個管理員用戶作為預設值
+    admin_user = User.objects.filter(is_superuser=True).first()
+    if not admin_user:
+        # 如果沒有超級用戶，創建一個系統用戶
+        admin_user = User.objects.create_user(
+            username='system',
+            email='system@nbcrm.local',
+            first_name='系統',
+            last_name='管理員',
+            is_staff=True,
+            is_superuser=True
+        )
+    
+    # 更新所有 uploaded_by 為 null 的記錄
+    null_records = KYCRecord.objects.filter(uploaded_by__isnull=True)
+    updated_count = null_records.update(uploaded_by=admin_user)
+    
+    print(f"修復了 {updated_count} 個 KYC 記錄的 uploaded_by 欄位")
+
+def reverse_fix_null_uploaded_by(apps, schema_editor):
+    """回滾操作（不執行任何操作）"""
+    pass
+
+class Migration(migrations.Migration):
+
+    dependencies = [
+        ('kyc', '0005_update_file_size_limit_100mb'),  # 請根據實際情況調整
+    ]
+
+    operations = [
+        migrations.RunPython(fix_null_uploaded_by, reverse_fix_null_uploaded_by),
+    ]
+'''
+    
+    # 創建 migration 目錄
+    migrations_dir = Path("kyc") / "migrations"
+    migrations_dir.mkdir(exist_ok=True)
+    
+    migration_file = migrations_dir / "0006_fix_null_uploaded_by.py"
+    with open(migration_file, 'w', encoding='utf-8') as f:
+        f.write(migration_content)
+    print("✅ 創建修復 migration")
+
+def main():
+    """主函數"""
+    print("🔧 修復 KYC 記錄 uploaded_by 空值錯誤")
+    print("=" * 40)
+    
+    # 檢查是否在正確的目錄
+    if not Path("manage.py").exists():
+        print("❌ 錯誤：請在 Django 項目根目錄執行此腳本")
+        return
+    
+    try:
+        # 修復代碼
+        fix_customer_admin_uploaded_by()
+        create_migration_fix()
+        
+        print("\n✅ 修復完成！")
+        print("\n🔧 主要修復：")
+        print("- ✅ 修正 save_formset 方法，確保 uploaded_by 不為空")
+        print("- ✅ 從內聯表單中排除 uploaded_by 欄位")
+        print("- ✅ 加強新記錄的 uploaded_by 設置邏輯")
+        print("- ✅ 創建修復現有 null 值的 migration")
+        
+        print("\n📋 下一步操作：")
+        print("1. python manage.py makemigrations")
+        print("2. python manage.py migrate")
+        print("3. git add .")
+        print("4. git commit -m '修復 KYC 記錄 uploaded_by 空值錯誤'")
+        print("5. git push origin main")
+        
+    except Exception as e:
+        print(f"❌ 修復過程中出現錯誤：{e}")
+
+if __name__ == "__main__":
+    main()

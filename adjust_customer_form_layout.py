@@ -1,4 +1,16 @@
-from django.contrib import admin
+#!/usr/bin/env python3
+"""
+調整客戶資料表單版面配置
+"""
+
+from pathlib import Path
+
+def update_customer_admin_layout():
+    """更新客戶 Admin 版面配置"""
+    
+    print("🎨 更新客戶資料表單版面配置...")
+    
+    customer_admin_content = '''from django.contrib import admin
 from django.utils.html import format_html
 from django import forms
 from .models import Customer
@@ -191,3 +203,303 @@ class CustomerAdmin(admin.ModelAdmin):
             'all': ('admin/css/custom_customer_layout.css',)
         }
         js = ('admin/js/kyc_inline.js',)
+'''
+    
+    customer_admin_path = Path("customers") / "admin.py"
+    with open(customer_admin_path, 'w', encoding='utf-8') as f:
+        f.write(customer_admin_content)
+    print("✅ 更新客戶 Admin 版面配置")
+
+def create_custom_layout_css():
+    """創建自定義版面 CSS"""
+    
+    print("🎨 創建自定義版面 CSS...")
+    
+    # 確保目錄存在
+    static_dir = Path("static") / "admin" / "css"
+    static_dir.mkdir(parents=True, exist_ok=True)
+    
+    css_content = '''/* 客戶資料表單版面自定義 CSS */
+
+/* 表單行的版面配置 */
+.form-row {
+    margin-bottom: 10px;
+    display: flex;
+    align-items: flex-start;
+    gap: 15px;
+}
+
+/* 三欄位同一列的樣式 */
+.form-row .field-name,
+.form-row .field-line_nickname,
+.form-row .field-n8_nickname {
+    flex: 0 0 auto;
+    margin-right: 15px;
+}
+
+.form-row .field-name input,
+.form-row .field-line_nickname input,
+.form-row .field-n8_nickname input {
+    width: 120px !important;
+    max-width: 120px !important;
+}
+
+/* 兩欄位同一列的樣式 */
+.form-row .field-n8_email,
+.form-row .field-n8_phone {
+    flex: 0 0 auto;
+    margin-right: 15px;
+}
+
+.form-row .field-n8_email input {
+    width: 200px !important;
+    max-width: 200px !important;
+}
+
+.form-row .field-n8_phone input {
+    width: 150px !important;
+    max-width: 150px !important;
+}
+
+/* 備註和驗證帳戶同一列 */
+.form-row .field-notes,
+.form-row .field-verified_accounts {
+    flex: 0 0 auto;
+    margin-right: 15px;
+}
+
+.form-row .field-notes textarea,
+.form-row .field-verified_accounts textarea {
+    width: 400px !important;
+    max-width: 400px !important;
+    height: 80px !important;
+    resize: vertical;
+}
+
+/* 系統資訊欄位 */
+.form-row .field-created_at,
+.form-row .field-updated_at {
+    flex: 0 0 auto;
+    margin-right: 15px;
+}
+
+/* 欄位標籤樣式 */
+.form-row label {
+    display: block;
+    margin-bottom: 3px;
+    font-weight: bold;
+    font-size: 12px;
+    color: #333;
+    min-width: fit-content;
+}
+
+/* 輸入框通用樣式 */
+.form-row input[type="text"],
+.form-row input[type="email"],
+.form-row textarea {
+    padding: 6px 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 13px;
+    font-family: inherit;
+}
+
+.form-row input[type="text"]:focus,
+.form-row input[type="email"]:focus,
+.form-row textarea:focus {
+    border-color: #007cba;
+    outline: none;
+    box-shadow: 0 0 3px rgba(0, 124, 186, 0.3);
+}
+
+/* KYC 內聯表格字體大小統一 */
+.tabular table {
+    font-size: 13px !important;
+}
+
+.tabular table th,
+.tabular table td {
+    font-size: 13px !important;
+    padding: 8px 6px !important;
+}
+
+/* KYC 內聯表格欄位寬度 */
+.tabular .field-bank_code {
+    width: 90px !important;
+}
+
+.tabular .field-verification_account {
+    width: 130px !important;
+}
+
+.tabular .field-file {
+    width: 150px !important;
+}
+
+.tabular .field-get_file_preview {
+    width: 80px !important;
+    text-align: center;
+}
+
+.tabular .field-file_description {
+    width: 200px !important;
+}
+
+.tabular .field-get_uploaded_by_display {
+    width: 120px !important;
+}
+
+.tabular .field-uploaded_at {
+    width: 120px !important;
+}
+
+/* 檔案上傳欄位樣式 */
+.tabular .field-file input[type="file"] {
+    font-size: 12px;
+    width: 140px;
+}
+
+/* 檔案預覽樣式 */
+.tabular .field-get_file_preview img {
+    border: 1px solid #ddd;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* 新增行的樣式 */
+.tabular .add-row {
+    background-color: #f8f9fa !important;
+}
+
+.tabular .add-row td {
+    border-top: 2px solid #007cba !important;
+}
+
+/* 改善內聯表格的可讀性 */
+.tabular tr.has_original {
+    background: #f9f9f9;
+}
+
+.tabular tr.has_original:hover {
+    background: #f0f8ff;
+}
+
+/* 刪除按鈕樣式 */
+.tabular .delete {
+    text-align: center;
+    width: 60px;
+}
+
+.tabular .delete input[type="checkbox"] {
+    transform: scale(1.2);
+}
+
+/* 表格標題樣式 */
+.tabular thead th {
+    font-size: 13px !important;
+    font-weight: bold;
+    background-color: #f1f1f1;
+}
+
+/* 輸入框樣式統一 */
+.tabular input[type="text"],
+.tabular textarea,
+.tabular select {
+    font-size: 13px !important;
+    padding: 4px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+}
+
+/* 內聯表單標題樣式 */
+.inline-group h2 {
+    background: linear-gradient(90deg, #007cba, #005a8b);
+    color: white;
+    padding: 10px 15px;
+    margin: 0;
+    border-radius: 5px 5px 0 0;
+    font-size: 14px;
+}
+
+.inline-group .tabular {
+    border: 1px solid #007cba;
+    border-radius: 0 0 5px 5px;
+}
+
+/* 響應式設計 */
+@media (max-width: 1024px) {
+    .form-row {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .form-row .field-name input,
+    .form-row .field-line_nickname input,
+    .form-row .field-n8_nickname input {
+        width: 200px !important;
+    }
+    
+    .form-row .field-notes textarea,
+    .form-row .field-verified_accounts textarea {
+        width: 300px !important;
+    }
+}
+
+@media (max-width: 768px) {
+    .tabular .field-get_file_preview {
+        width: 60px !important;
+    }
+    
+    .tabular .field-get_file_preview img {
+        max-width: 40px;
+        max-height: 40px;
+    }
+    
+    .tabular .field-file input[type="file"] {
+        width: 120px;
+    }
+}
+'''
+    
+    css_file = static_dir / "custom_customer_layout.css"
+    with open(css_file, 'w', encoding='utf-8') as f:
+        f.write(css_content)
+    print("✅ 創建自定義版面 CSS")
+
+def main():
+    """主函數"""
+    print("🎨 調整客戶資料表單版面配置")
+    print("=" * 40)
+    
+    # 檢查是否在正確的目錄
+    if not Path("manage.py").exists():
+        print("❌ 錯誤：請在 Django 項目根目錄執行此腳本")
+        return
+    
+    try:
+        # 更新客戶 Admin
+        update_customer_admin_layout()
+        
+        # 創建自定義 CSS
+        create_custom_layout_css()
+        
+        print("\n✅ 版面配置調整完成！")
+        print("\n🎯 新的版面配置：")
+        print("- 📝 第一列：姓名、Line暱稱、N8暱稱（各120px寬）")
+        print("- 📧 第二列：N8信箱（200px）、N8電話（150px）")
+        print("- 📋 第三列：備註、驗證帳戶（各400px寬，3行高）")
+        print("- 🕐 第四列：建立時間、更新時間")
+        
+        print("\n📱 響應式設計：")
+        print("- 在小螢幕上自動調整為垂直排列")
+        print("- 保持良好的可讀性和使用體驗")
+        
+        print("\n🔧 接下來請執行：")
+        print("git add .")
+        print("git commit -m '調整客戶資料表單版面配置'")
+        print("git push origin main")
+        
+    except Exception as e:
+        print(f"❌ 調整過程中出現錯誤：{e}")
+
+if __name__ == "__main__":
+    main()
