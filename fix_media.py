@@ -1,308 +1,14 @@
 #!/usr/bin/env python3
 """
-Render 媒體文件問題解決腳本
-解決生產環境中 /media/ 文件無法訪問的問題
+修復 KYC admin.py 語法錯誤
 """
 
-import os
 from pathlib import Path
 
-def fix_render_media_issue():
-    """修復 Render 媒體文件訪問問題"""
+def fix_kyc_admin_syntax():
+    """修復 KYC admin.py 語法錯誤"""
     
-    print("🔧 修復 Render 媒體文件訪問問題...")
-    
-    # 1. 更新 urls.py 添加媒體文件服務
-    update_main_urls()
-    
-    # 2. 更新 settings.py 媒體文件設定
-    update_settings_for_production()
-    
-    # 3. 創建媒體文件服務視圖
-    create_media_serve_view()
-    
-    # 4. 更新 KYC Admin 顯示邏輯
-    update_kyc_admin_for_production()
-    
-    print("✅ 修復完成！")
-    print("\n📋 接下來需要：")
-    print("1. git add .")
-    print("2. git commit -m '修復生產環境媒體文件訪問問題'")
-    print("3. git push origin main")
-    print("4. 等待 Render 重新部署")
-
-def update_main_urls():
-    """更新主 URLs 配置"""
-    
-    urls_content = '''from django.contrib import admin
-from django.urls import path, re_path
-from django.conf import settings
-from django.conf.urls.static import static
-from django.shortcuts import redirect
-from django.http import HttpResponse, Http404
-from django.views.static import serve
-import os
-
-# 設置管理後台標題
-admin.site.site_header = '小商人客戶管理系統'
-admin.site.site_title = '小商人CRM'
-admin.site.index_title = '系統管理'
-
-def redirect_to_admin(request):
-    """根路徑重定向到 admin"""
-    return redirect('/admin/')
-
-def serve_media(request, path):
-    """在生產環境中服務媒體文件"""
-    try:
-        # 構建完整的文件路徑
-        file_path = os.path.join(settings.MEDIA_ROOT, path)
-        
-        # 檢查文件是否存在
-        if os.path.exists(file_path) and os.path.isfile(file_path):
-            return serve(request, path, document_root=settings.MEDIA_ROOT)
-        else:
-            raise Http404("媒體文件不存在")
-    except Exception as e:
-        raise Http404(f"無法訪問媒體文件: {str(e)}")
-
-urlpatterns = [
-    path('', redirect_to_admin),
-    path('admin/', admin.site.urls),
-    # 在生產環境中也服務媒體文件
-    re_path(r'^media/(?P<path>.*)$', serve_media, name='media'),
-]
-
-# 開發環境的靜態文件服務
-if settings.DEBUG:
-    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
-    # 開發環境也保留原始的媒體文件服務
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-'''
-    
-    urls_path = Path("nbcrm") / "urls.py"
-    with open(urls_path, 'w', encoding='utf-8') as f:
-        f.write(urls_content)
-    print("✅ 更新 nbcrm/urls.py")
-
-def update_settings_for_production():
-    """更新 settings.py 生產環境媒體設定"""
-    
-    settings_content = '''from pathlib import Path
-from decouple import config
-import dj_database_url
-import os
-
-BASE_DIR = Path(__file__).resolve().parent.parent
-
-SECRET_KEY = config('SECRET_KEY')
-DEBUG = config('DEBUG', default=False, cast=bool)
-ALLOWED_HOSTS = ['*']
-
-INSTALLED_APPS = [
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-    'accounts',
-    'customers',
-    'kyc',
-    'transactions',
-]
-
-MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
-]
-
-ROOT_URLCONF = 'nbcrm.urls'
-
-TEMPLATES = [
-    {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
-        'APP_DIRS': True,
-        'OPTIONS': {
-            'context_processors': [
-                'django.template.context_processors.debug',
-                'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
-            ],
-        },
-    },
-]
-
-WSGI_APPLICATION = 'nbcrm.wsgi.application'
-
-DATABASES = {
-    'default': dj_database_url.config(
-        default=config('DATABASE_URL', default='sqlite:///db.sqlite3')
-    )
-}
-
-AUTH_PASSWORD_VALIDATORS = [
-    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
-]
-
-LANGUAGE_CODE = 'zh-hant'
-TIME_ZONE = 'Asia/Taipei'
-USE_I18N = True
-USE_TZ = True
-
-# 靜態文件設定
-STATIC_URL = '/static/'
-STATIC_ROOT = BASE_DIR / 'staticfiles'
-
-# 媒體文件設定 - 生產環境優化
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
-
-# 確保媒體目錄存在
-os.makedirs(MEDIA_ROOT, exist_ok=True)
-
-# Admin 設定
-AUTH_USER_MODEL = 'accounts.User'
-LOGIN_URL = '/admin/login/'
-LOGIN_REDIRECT_URL = '/admin/'
-LOGOUT_REDIRECT_URL = '/admin/'
-
-# 文件上傳設定
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-FILE_UPLOAD_MAX_MEMORY_SIZE = 100 * 1024 * 1024  # 100MB
-DATA_UPLOAD_MAX_MEMORY_SIZE = 100 * 1024 * 1024  # 100MB
-
-# 安全設定（生產環境）
-if not DEBUG:
-    SECURE_BROWSER_XSS_FILTER = True
-    SECURE_CONTENT_TYPE_NOSNIFF = True
-    X_FRAME_OPTIONS = 'DENY'
-
-# 日誌設定
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'handlers': {
-        'console': {
-            'class': 'logging.StreamHandler',
-        },
-    },
-    'root': {
-        'handlers': ['console'],
-        'level': 'INFO',
-    },
-    'loggers': {
-        'django': {
-            'handlers': ['console'],
-            'level': 'INFO',
-            'propagate': False,
-        },
-    },
-}
-'''
-    
-    settings_path = Path("nbcrm") / "settings.py"
-    with open(settings_path, 'w', encoding='utf-8') as f:
-        f.write(settings_content)
-    print("✅ 更新 nbcrm/settings.py")
-
-def create_media_serve_view():
-    """創建媒體文件服務視圖"""
-    
-    # 創建 utils 目錄
-    utils_dir = Path("nbcrm") / "utils"
-    utils_dir.mkdir(exist_ok=True)
-    
-    # 創建 __init__.py
-    init_file = utils_dir / "__init__.py"
-    init_file.touch()
-    
-    # 創建媒體服務工具
-    media_utils_content = '''"""
-媒體文件服務工具
-用於在生產環境中正確服務媒體文件
-"""
-
-import os
-import mimetypes
-from django.http import HttpResponse, Http404, FileResponse
-from django.conf import settings
-from django.utils.encoding import escape_uri_path
-
-def serve_protected_media(request, path):
-    """
-    安全地服務媒體文件
-    支援中文檔名和特殊字符
-    """
-    try:
-        # 構建完整的文件路徑
-        file_path = os.path.join(settings.MEDIA_ROOT, path)
-        
-        # 安全檢查：確保路徑在 MEDIA_ROOT 內
-        real_path = os.path.realpath(file_path)
-        real_media_root = os.path.realpath(settings.MEDIA_ROOT)
-        
-        if not real_path.startswith(real_media_root):
-            raise Http404("無效的文件路徑")
-        
-        # 檢查文件是否存在
-        if not os.path.exists(file_path) or not os.path.isfile(file_path):
-            raise Http404("文件不存在")
-        
-        # 獲取文件 MIME 類型
-        content_type, _ = mimetypes.guess_type(file_path)
-        if content_type is None:
-            content_type = 'application/octet-stream'
-        
-        # 返回文件響應
-        response = FileResponse(
-            open(file_path, 'rb'),
-            content_type=content_type
-        )
-        
-        # 設置文件名（支援中文）
-        filename = os.path.basename(file_path)
-        response['Content-Disposition'] = f'inline; filename*=UTF-8\'\'{escape_uri_path(filename)}'
-        
-        return response
-        
-    except Exception as e:
-        raise Http404(f"無法訪問文件: {str(e)}")
-
-def get_media_url(file_field):
-    """
-    安全地獲取媒體文件 URL
-    處理中文檔名和特殊字符
-    """
-    if not file_field:
-        return None
-    
-    try:
-        # 使用 Django 的內建 URL 生成
-        return file_field.url
-    except Exception:
-        # 如果出錯，返回空
-        return None
-'''
-    
-    media_utils_path = utils_dir / "media_utils.py"
-    with open(media_utils_path, 'w', encoding='utf-8') as f:
-        f.write(media_utils_content)
-    print("✅ 創建媒體服務工具")
-
-def update_kyc_admin_for_production():
-    """更新 KYC Admin 以處理生產環境媒體文件"""
+    print("🔧 修復 KYC admin.py 語法錯誤...")
     
     kyc_admin_content = '''from django.contrib import admin
 from django.utils.html import format_html
@@ -582,12 +288,68 @@ class KYCRecordAdmin(admin.ModelAdmin):
     kyc_admin_path = Path("kyc") / "admin.py"
     with open(kyc_admin_path, 'w', encoding='utf-8') as f:
         f.write(kyc_admin_content)
-    print("✅ 更新 kyc/admin.py")
+    print("✅ 修復 kyc/admin.py 語法錯誤")
+
+def fix_urls_syntax():
+    """修復 URLs 語法錯誤"""
+    
+    print("🔧 修復 nbcrm/urls.py...")
+    
+    urls_content = '''from django.contrib import admin
+from django.urls import path, re_path
+from django.conf import settings
+from django.conf.urls.static import static
+from django.shortcuts import redirect
+from django.http import Http404, FileResponse
+from django.views.static import serve
+import os
+
+# 設置管理後台標題
+admin.site.site_header = '小商人客戶管理系統'
+admin.site.site_title = '小商人CRM'
+admin.site.index_title = '系統管理'
+
+def redirect_to_admin(request):
+    """根路徑重定向到 admin"""
+    return redirect('/admin/')
+
+def serve_media(request, path):
+    """在生產環境中服務媒體文件"""
+    try:
+        # 構建完整的文件路徑
+        file_path = os.path.join(settings.MEDIA_ROOT, path)
+        
+        # 檢查文件是否存在
+        if os.path.exists(file_path) and os.path.isfile(file_path):
+            return serve(request, path, document_root=settings.MEDIA_ROOT)
+        else:
+            raise Http404("媒體文件不存在")
+    except Exception as e:
+        raise Http404(f"無法訪問媒體文件: {str(e)}")
+
+urlpatterns = [
+    path('', redirect_to_admin),
+    path('admin/', admin.site.urls),
+    # 在生產環境中也服務媒體文件
+    re_path(r'^media/(?P<path>.*)$', serve_media, name='media'),
+]
+
+# 開發環境的靜態文件服務
+if settings.DEBUG:
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+    # 開發環境也保留原始的媒體文件服務
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+'''
+    
+    urls_path = Path("nbcrm") / "urls.py"
+    with open(urls_path, 'w', encoding='utf-8') as f:
+        f.write(urls_content)
+    print("✅ 修復 nbcrm/urls.py")
 
 def main():
     """主函數"""
-    print("🔧 Render 媒體文件問題修復工具")
-    print("=" * 40)
+    print("🛠️ 修復語法錯誤")
+    print("=" * 30)
     
     # 檢查是否在正確的目錄
     if not Path("manage.py").exists():
@@ -595,17 +357,15 @@ def main():
         return
     
     try:
-        fix_render_media_issue()
+        # 修復語法錯誤
+        fix_kyc_admin_syntax()
+        fix_urls_syntax()
         
-        print("\n🎯 問題原因：")
-        print("- Render 等生產環境不會自動服務 /media/ 文件")
-        print("- 需要手動配置媒體文件路由")
-        print("- 中文檔名需要特殊處理")
-        
-        print("\n✨ 解決方案：")
-        print("- 添加自定義媒體文件服務路由")
-        print("- 改善錯誤處理和安全檢查")
-        print("- 支援中文檔名和特殊字符")
+        print("\n✅ 語法錯誤修復完成！")
+        print("\n📋 接下來請執行：")
+        print("git add .")
+        print("git commit -m '修復語法錯誤'")
+        print("git push origin main")
         
     except Exception as e:
         print(f"❌ 修復過程中出現錯誤：{e}")

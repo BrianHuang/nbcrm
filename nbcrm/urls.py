@@ -3,7 +3,7 @@ from django.urls import path, re_path
 from django.conf import settings
 from django.conf.urls.static import static
 from django.shortcuts import redirect
-from django.http import HttpResponse, Http404
+from django.http import Http404, FileResponse
 from django.views.static import serve
 import os
 
