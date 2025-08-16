@@ -75,12 +75,18 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-# 媒體文件設定 - 生產環境優化
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+# 媒體文件設定 - Render Disk 持久化存儲
+if not DEBUG:
+    # 生產環境：使用 Render Disk 掛載的目錄
+    MEDIA_ROOT = '/opt/render/project/media'
+    # 確保媒體目錄存在
+    os.makedirs(MEDIA_ROOT, exist_ok=True)
+else:
+    # 開發環境：使用本地目錄
+    MEDIA_ROOT = BASE_DIR / 'media'
+    MEDIA_ROOT.mkdir(exist_ok=True)
 
-# 確保媒體目錄存在
-os.makedirs(MEDIA_ROOT, exist_ok=True)
+MEDIA_URL = '/media/'
 
 # Admin 設定
 AUTH_USER_MODEL = 'accounts.User'
@@ -98,14 +104,27 @@ if not DEBUG:
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = 'DENY'
+    
+    # 額外安全設定為隱私文件
+    SECURE_SSL_REDIRECT = True
+    SECURE_HSTS_SECONDS = 31536000  # 1 year
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
 
 # 日誌設定
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+    },
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
         },
     },
     'root': {
@@ -118,5 +137,13 @@ LOGGING = {
             'level': 'INFO',
             'propagate': False,
         },
+        'nbcrm.media': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
     },
 }
+
+# 媒體文件訪問日誌（用於安全審計）
+MEDIA_ACCESS_LOG = config('MEDIA_ACCESS_LOG', default=True, cast=bool)
