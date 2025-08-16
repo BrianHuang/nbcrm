@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-更新客戶管理 Admin，添加 KYC 記錄內聯顯示
+調整客戶管理頁面版面配置
 """
 
 from pathlib import Path
@@ -12,8 +12,20 @@ def update_customer_admin():
     
     customer_admin_content = '''from django.contrib import admin
 from django.utils.html import format_html
+from django import forms
 from .models import Customer
 import os
+
+class CustomerAdminForm(forms.ModelForm):
+    """自定義客戶表單"""
+    
+    class Meta:
+        model = Customer
+        fields = '__all__'
+        widgets = {
+            'notes': forms.Textarea(attrs={'rows': 3, 'cols': 50}),  # 一半高度
+            'verified_accounts': forms.Textarea(attrs={'rows': 3, 'cols': 50}),  # 一半高度
+        }
 
 class KYCRecordInline(admin.TabularInline):
     """KYC 記錄內聯顯示"""
@@ -24,6 +36,16 @@ class KYCRecordInline(admin.TabularInline):
     
     fields = ('bank_code', 'verification_account', 'get_file_preview', 'file_description', 'get_uploaded_by_display', 'uploaded_at')
     readonly_fields = ('get_file_preview', 'get_uploaded_by_display', 'uploaded_at')
+    
+    def formfield_for_dbfield(self, db_field, request, **kwargs):
+        """自定義表單欄位"""
+        if db_field.name == 'bank_code':
+            kwargs['widget'] = forms.TextInput(attrs={'size': 8})  # 縮短銀行代碼欄位
+        elif db_field.name == 'verification_account':
+            kwargs['widget'] = forms.TextInput(attrs={'size': 15})  # 縮短驗證帳戶欄位
+        elif db_field.name == 'file_description':
+            kwargs['widget'] = forms.TextInput(attrs={'size': 30})  # 檔案說明用一行
+        return super().formfield_for_dbfield(db_field, request, **kwargs)
     
     def get_file_preview(self, obj):
         """顯示檔案預覽（簡化版）"""
@@ -80,29 +102,27 @@ class KYCRecordInline(admin.TabularInline):
 
 @admin.register(Customer)
 class CustomerAdmin(admin.ModelAdmin):
+    form = CustomerAdminForm
+    
     list_display = ('get_display_name', 'line_nickname', 'n8_phone', 'n8_email', 'get_kyc_count', 'created_at', 'updated_at')
     list_filter = ('created_at', 'updated_at')
     search_fields = ('name', 'line_nickname', 'n8_nickname', 'n8_phone', 'n8_email', 'notes', 'verified_accounts')
-    readonly_fields = ('created_at', 'updated_at', 'get_kyc_summary')
+    readonly_fields = ('created_at', 'updated_at')
     
     # 添加 KYC 記錄內聯
     inlines = [KYCRecordInline]
     
+    # 簡化的 fieldsets，不分組
     fieldsets = (
-        ('基本資料', {
-            'fields': ('name', 'line_nickname', 'n8_nickname', 'n8_phone', 'n8_email')
-        }),
-        ('詳細資訊', {
-            'fields': ('notes', 'verified_accounts')
-        }),
-        ('KYC 概況', {
-            'fields': ('get_kyc_summary',),
-            'classes': ('collapse',),
-            'description': '此客戶的 KYC 記錄概況，詳細記錄請查看下方 KYC 記錄區塊'
-        }),
-        ('系統資訊', {
-            'fields': ('created_at', 'updated_at'),
-            'classes': ('collapse',)
+        (None, {
+            'fields': (
+                ('name', 'line_nickname'),
+                ('n8_nickname', 'n8_phone'), 
+                'n8_email',
+                'notes',
+                'verified_accounts',
+                ('created_at', 'updated_at')
+            )
         }),
     )
     
@@ -125,55 +145,15 @@ class CustomerAdmin(admin.ModelAdmin):
             )
     get_kyc_count.short_description = 'KYC 記錄'
     
-    def get_kyc_summary(self, obj):
-        """顯示 KYC 記錄摘要"""
-        kyc_records = obj.kyc_records.all()
-        
-        if not kyc_records:
-            return format_html(
-                '<div style="padding: 10px; background: #f8f9fa; border-radius: 5px;">'
-                '<i style="color: #6c757d;">此客戶尚無 KYC 記錄</i><br>'
-                '<small><a href="/admin/kyc/kycrecord/add/?customer={}" target="_blank">➕ 新增 KYC 記錄</a></small>'
-                '</div>',
-                obj.id
-            )
-        
-        summary_html = f'<div style="padding: 10px; background: #e7f3ff; border-radius: 5px;">'
-        summary_html += f'<strong>📊 KYC 記錄摘要</strong><br>'
-        summary_html += f'<small>總記錄數：{kyc_records.count()}</small><br><br>'
-        
-        # 統計檔案類型
-        image_count = sum(1 for kyc in kyc_records if kyc.file and kyc.is_image())
-        video_count = sum(1 for kyc in kyc_records if kyc.file and kyc.is_video())
-        other_count = sum(1 for kyc in kyc_records if kyc.file and not kyc.is_image() and not kyc.is_video())
-        no_file_count = sum(1 for kyc in kyc_records if not kyc.file)
-        
-        if image_count > 0:
-            summary_html += f'🖼️ 圖片檔案：{image_count} 個<br>'
-        if video_count > 0:
-            summary_html += f'🎥 影片檔案：{video_count} 個<br>'
-        if other_count > 0:
-            summary_html += f'📄 其他檔案：{other_count} 個<br>'
-        if no_file_count > 0:
-            summary_html += f'📝 純資料記錄：{no_file_count} 個<br>'
-        
-        # 最近記錄
-        latest_kyc = kyc_records.first()
-        if latest_kyc:
-            summary_html += f'<br><small>最近記錄：{latest_kyc.uploaded_at.strftime("%Y-%m-%d %H:%M")}</small><br>'
-            summary_html += f'<small>上傳客服：{latest_kyc.uploaded_by.username}</small>'
-        
-        summary_html += '<br><br><small><a href="/admin/kyc/kycrecord/?customer__id__exact={}" target="_blank">🔍 查看所有 KYC 記錄</a></small>'.format(obj.id)
-        summary_html += '</div>'
-        
-        return format_html(summary_html)
-    
-    get_kyc_summary.short_description = 'KYC 記錄摘要'
-    
     def get_readonly_fields(self, request, obj=None):
         if obj:  # 編輯時
             return self.readonly_fields
-        return ('created_at', 'updated_at', 'get_kyc_summary')
+        return ('created_at', 'updated_at')
+    
+    class Media:
+        css = {
+            'all': ('admin/css/custom_customer_admin.css',)
+        }
 '''
     
     customer_admin_path = Path("customers") / "admin.py"
@@ -182,7 +162,7 @@ class CustomerAdmin(admin.ModelAdmin):
     print("✅ 更新 customers/admin.py")
 
 def create_custom_css():
-    """創建自定義 CSS（可選）"""
+    """創建自定義 CSS"""
     
     print("🎨 創建自定義 CSS...")
     
@@ -190,25 +170,56 @@ def create_custom_css():
     static_dir = Path("static") / "admin" / "css"
     static_dir.mkdir(parents=True, exist_ok=True)
     
-    css_content = '''/* 自定義 Admin CSS */
+    css_content = '''/* 客戶管理自定義 CSS */
 
-/* KYC 內聯表格樣式 */
-.tabular .kyc-file-preview {
-    text-align: center;
-    width: 80px;
+/* 統一 KYC 內聯表格字體大小為正常大小 */
+.tabular table {
+    font-size: 13px !important;
 }
 
-.tabular .kyc-file-preview img {
+.tabular table th,
+.tabular table td {
+    font-size: 13px !important;
+    padding: 8px 6px !important;
+}
+
+/* KYC 內聯表格欄位寬度調整 */
+.tabular .field-bank_code {
+    width: 80px !important;
+}
+
+.tabular .field-verification_account {
+    width: 120px !important;
+}
+
+.tabular .field-get_file_preview {
+    width: 80px !important;
+    text-align: center;
+}
+
+.tabular .field-file_description {
+    width: 200px !important;
+}
+
+.tabular .field-get_uploaded_by_display {
+    width: 120px !important;
+}
+
+.tabular .field-uploaded_at {
+    width: 120px !important;
+}
+
+/* 檔案預覽樣式 */
+.tabular .field-get_file_preview img {
     border: 1px solid #ddd;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-/* KYC 摘要區塊樣式 */
-.kyc-summary {
-    background: #f8f9fa;
-    border-left: 4px solid #007cba;
-    padding: 15px;
-    margin: 10px 0;
+/* 客戶表單的備註和驗證帳戶欄位寬度調整 */
+.form-row .field-notes textarea,
+.form-row .field-verified_accounts textarea {
+    width: 400px !important;  /* 一半寬度 */
+    max-width: 400px !important;
 }
 
 /* 改善內聯表格的可讀性 */
@@ -220,27 +231,43 @@ def create_custom_css():
     background: #f0f8ff;
 }
 
+/* 確保表格標題也是正常字體大小 */
+.tabular thead th {
+    font-size: 13px !important;
+    font-weight: bold;
+}
+
+/* KYC 內聯表格輸入框調整 */
+.tabular input[type="text"] {
+    font-size: 13px !important;
+}
+
 /* 響應式改善 */
 @media (max-width: 768px) {
-    .tabular .kyc-file-preview {
-        width: 60px;
+    .tabular .field-get_file_preview {
+        width: 60px !important;
     }
     
-    .tabular .kyc-file-preview img {
+    .tabular .field-get_file_preview img {
         max-width: 40px;
         max-height: 40px;
+    }
+    
+    .form-row .field-notes textarea,
+    .form-row .field-verified_accounts textarea {
+        width: 300px !important;
     }
 }
 '''
     
-    css_file = static_dir / "custom_admin.css"
+    css_file = static_dir / "custom_customer_admin.css"
     with open(css_file, 'w', encoding='utf-8') as f:
         f.write(css_content)
     print("✅ 創建自定義 CSS")
 
 def main():
     """主函數"""
-    print("🔧 更新客戶管理 Admin")
+    print("🔧 調整客戶管理頁面版面")
     print("=" * 30)
     
     # 檢查是否在正確的目錄
@@ -252,20 +279,21 @@ def main():
         # 更新客戶 Admin
         update_customer_admin()
         
-        # 創建自定義 CSS（可選）
+        # 創建自定義 CSS
         create_custom_css()
         
-        print("\n✅ 更新完成！")
-        print("\n🎯 新功能：")
-        print("- 客戶列表頁面顯示 KYC 記錄數量")
-        print("- 客戶詳情頁面顯示 KYC 記錄摘要")
-        print("- 客戶編輯頁面底部顯示所有 KYC 記錄")
-        print("- KYC 記錄包含檔案預覽、銀行資訊等")
-        print("- 可直接從客戶頁面查看或跳轉到 KYC 管理")
+        print("\n✅ 調整完成！")
+        print("\n🎯 版面調整：")
+        print("- ✅ 移除基本資料和詳細資料分組")
+        print("- ✅ 備註和驗證帳戶文字框調整為一半寬度和高度")
+        print("- ✅ 移除 KYC 概況區塊")
+        print("- ✅ KYC 記錄表格字體大小調整為正常")
+        print("- ✅ 銀行代碼和驗證帳戶欄位寬度縮短")
+        print("- ✅ 檔案說明改為一行輸入")
         
         print("\n📋 接下來請執行：")
         print("git add .")
-        print("git commit -m '新增客戶頁面 KYC 記錄顯示功能'")
+        print("git commit -m '調整客戶管理頁面版面配置'")
         print("git push origin main")
         
     except Exception as e:

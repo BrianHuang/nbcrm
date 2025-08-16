@@ -1,7 +1,19 @@
 from django.contrib import admin
 from django.utils.html import format_html
+from django import forms
 from .models import Customer
 import os
+
+class CustomerAdminForm(forms.ModelForm):
+    """自定義客戶表單"""
+    
+    class Meta:
+        model = Customer
+        fields = '__all__'
+        widgets = {
+            'notes': forms.Textarea(attrs={'rows': 3, 'cols': 50}),  # 一半高度
+            'verified_accounts': forms.Textarea(attrs={'rows': 3, 'cols': 50}),  # 一半高度
+        }
 
 class KYCRecordInline(admin.TabularInline):
     """KYC 記錄內聯顯示"""
@@ -12,6 +24,16 @@ class KYCRecordInline(admin.TabularInline):
     
     fields = ('bank_code', 'verification_account', 'get_file_preview', 'file_description', 'get_uploaded_by_display', 'uploaded_at')
     readonly_fields = ('get_file_preview', 'get_uploaded_by_display', 'uploaded_at')
+    
+    def formfield_for_dbfield(self, db_field, request, **kwargs):
+        """自定義表單欄位"""
+        if db_field.name == 'bank_code':
+            kwargs['widget'] = forms.TextInput(attrs={'size': 8})  # 縮短銀行代碼欄位
+        elif db_field.name == 'verification_account':
+            kwargs['widget'] = forms.TextInput(attrs={'size': 15})  # 縮短驗證帳戶欄位
+        elif db_field.name == 'file_description':
+            kwargs['widget'] = forms.TextInput(attrs={'size': 30})  # 檔案說明用一行
+        return super().formfield_for_dbfield(db_field, request, **kwargs)
     
     def get_file_preview(self, obj):
         """顯示檔案預覽（簡化版）"""
@@ -68,29 +90,27 @@ class KYCRecordInline(admin.TabularInline):
 
 @admin.register(Customer)
 class CustomerAdmin(admin.ModelAdmin):
+    form = CustomerAdminForm
+    
     list_display = ('get_display_name', 'line_nickname', 'n8_phone', 'n8_email', 'get_kyc_count', 'created_at', 'updated_at')
     list_filter = ('created_at', 'updated_at')
     search_fields = ('name', 'line_nickname', 'n8_nickname', 'n8_phone', 'n8_email', 'notes', 'verified_accounts')
-    readonly_fields = ('created_at', 'updated_at', 'get_kyc_summary')
+    readonly_fields = ('created_at', 'updated_at')
     
     # 添加 KYC 記錄內聯
     inlines = [KYCRecordInline]
     
+    # 簡化的 fieldsets，不分組
     fieldsets = (
-        ('基本資料', {
-            'fields': ('name', 'line_nickname', 'n8_nickname', 'n8_phone', 'n8_email')
-        }),
-        ('詳細資訊', {
-            'fields': ('notes', 'verified_accounts')
-        }),
-        ('KYC 概況', {
-            'fields': ('get_kyc_summary',),
-            'classes': ('collapse',),
-            'description': '此客戶的 KYC 記錄概況，詳細記錄請查看下方 KYC 記錄區塊'
-        }),
-        ('系統資訊', {
-            'fields': ('created_at', 'updated_at'),
-            'classes': ('collapse',)
+        (None, {
+            'fields': (
+                ('name', 'line_nickname'),
+                ('n8_nickname', 'n8_phone'), 
+                'n8_email',
+                'notes',
+                'verified_accounts',
+                ('created_at', 'updated_at')
+            )
         }),
     )
     
@@ -113,52 +133,12 @@ class CustomerAdmin(admin.ModelAdmin):
             )
     get_kyc_count.short_description = 'KYC 記錄'
     
-    def get_kyc_summary(self, obj):
-        """顯示 KYC 記錄摘要"""
-        kyc_records = obj.kyc_records.all()
-        
-        if not kyc_records:
-            return format_html(
-                '<div style="padding: 10px; background: #f8f9fa; border-radius: 5px;">'
-                '<i style="color: #6c757d;">此客戶尚無 KYC 記錄</i><br>'
-                '<small><a href="/admin/kyc/kycrecord/add/?customer={}" target="_blank">➕ 新增 KYC 記錄</a></small>'
-                '</div>',
-                obj.id
-            )
-        
-        summary_html = f'<div style="padding: 10px; background: #e7f3ff; border-radius: 5px;">'
-        summary_html += f'<strong>📊 KYC 記錄摘要</strong><br>'
-        summary_html += f'<small>總記錄數：{kyc_records.count()}</small><br><br>'
-        
-        # 統計檔案類型
-        image_count = sum(1 for kyc in kyc_records if kyc.file and kyc.is_image())
-        video_count = sum(1 for kyc in kyc_records if kyc.file and kyc.is_video())
-        other_count = sum(1 for kyc in kyc_records if kyc.file and not kyc.is_image() and not kyc.is_video())
-        no_file_count = sum(1 for kyc in kyc_records if not kyc.file)
-        
-        if image_count > 0:
-            summary_html += f'🖼️ 圖片檔案：{image_count} 個<br>'
-        if video_count > 0:
-            summary_html += f'🎥 影片檔案：{video_count} 個<br>'
-        if other_count > 0:
-            summary_html += f'📄 其他檔案：{other_count} 個<br>'
-        if no_file_count > 0:
-            summary_html += f'📝 純資料記錄：{no_file_count} 個<br>'
-        
-        # 最近記錄
-        latest_kyc = kyc_records.first()
-        if latest_kyc:
-            summary_html += f'<br><small>最近記錄：{latest_kyc.uploaded_at.strftime("%Y-%m-%d %H:%M")}</small><br>'
-            summary_html += f'<small>上傳客服：{latest_kyc.uploaded_by.username}</small>'
-        
-        summary_html += '<br><br><small><a href="/admin/kyc/kycrecord/?customer__id__exact={}" target="_blank">🔍 查看所有 KYC 記錄</a></small>'.format(obj.id)
-        summary_html += '</div>'
-        
-        return format_html(summary_html)
-    
-    get_kyc_summary.short_description = 'KYC 記錄摘要'
-    
     def get_readonly_fields(self, request, obj=None):
         if obj:  # 編輯時
             return self.readonly_fields
-        return ('created_at', 'updated_at', 'get_kyc_summary')
+        return ('created_at', 'updated_at')
+    
+    class Media:
+        css = {
+            'all': ('admin/css/custom_customer_admin.css',)
+        }

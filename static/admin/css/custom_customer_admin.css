@@ -1,0 +1,88 @@
+/* 客戶管理自定義 CSS */
+
+/* 統一 KYC 內聯表格字體大小為正常大小 */
+.tabular table {
+    font-size: 13px !important;
+}
+
+.tabular table th,
+.tabular table td {
+    font-size: 13px !important;
+    padding: 8px 6px !important;
+}
+
+/* KYC 內聯表格欄位寬度調整 */
+.tabular .field-bank_code {
+    width: 80px !important;
+}
+
+.tabular .field-verification_account {
+    width: 120px !important;
+}
+
+.tabular .field-get_file_preview {
+    width: 80px !important;
+    text-align: center;
+}
+
+.tabular .field-file_description {
+    width: 200px !important;
+}
+
+.tabular .field-get_uploaded_by_display {
+    width: 120px !important;
+}
+
+.tabular .field-uploaded_at {
+    width: 120px !important;
+}
+
+/* 檔案預覽樣式 */
+.tabular .field-get_file_preview img {
+    border: 1px solid #ddd;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* 客戶表單的備註和驗證帳戶欄位寬度調整 */
+.form-row .field-notes textarea,
+.form-row .field-verified_accounts textarea {
+    width: 400px !important;  /* 一半寬度 */
+    max-width: 400px !important;
+}
+
+/* 改善內聯表格的可讀性 */
+.tabular tr.has_original {
+    background: #f9f9f9;
+}
+
+.tabular tr.has_original:hover {
+    background: #f0f8ff;
+}
+
+/* 確保表格標題也是正常字體大小 */
+.tabular thead th {
+    font-size: 13px !important;
+    font-weight: bold;
+}
+
+/* KYC 內聯表格輸入框調整 */
+.tabular input[type="text"] {
+    font-size: 13px !important;
+}
+
+/* 響應式改善 */
+@media (max-width: 768px) {
+    .tabular .field-get_file_preview {
+        width: 60px !important;
+    }
+    
+    .tabular .field-get_file_preview img {
+        max-width: 40px;
+        max-height: 40px;
+    }
+    
+    .form-row .field-notes textarea,
+    .form-row .field-verified_accounts textarea {
+        width: 300px !important;
+    }
+}
