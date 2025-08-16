@@ -73,6 +73,11 @@ USE_TZ = True
 
 # 靜態文件設定
 STATIC_URL = '/static/'
+
+# Static files directories
+STATICFILES_DIRS = [
+    BASE_DIR / 'static',
+]
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # 媒體文件設定 - Render Disk 持久化存儲
