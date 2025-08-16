@@ -9,7 +9,6 @@ class KYCRecordAdminForm(forms.ModelForm):
     """自定義KYC表單"""
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # 自定義客戶欄位顯示
         self.fields['customer'].queryset = Customer.objects.all().order_by('name')
         self.fields['customer'].empty_label = "請選擇客戶"
     
@@ -163,7 +162,7 @@ class KYCRecordAdmin(admin.ModelAdmin):
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
     
     def get_file_preview(self, obj):
-        """顯示檔案預覽 - 生產環境優化版本"""
+        """顯示檔案預覽"""
         if not obj.file:
             return "無檔案"
         
@@ -171,44 +170,38 @@ class KYCRecordAdmin(admin.ModelAdmin):
             file_url = obj.file.url
             file_name = os.path.basename(obj.file.name)
             
-            # 安全地獲取檔案資訊
             if obj.is_image():
-                return format_html(
+                html = (
                     '<div style="text-align: center;">'
-                    '<img src="{}" style="max-width: 100px; max-height: 100px; border-radius: 5px;" '
-                    'onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" />'
-                    '<div style="display: none; padding: 20px; background: #f0f0f0; border-radius: 5px;">'
-                    '<i style="font-size: 24px;">🖼️</i><br><small>圖片載入失敗</small>'
-                    '</div><br>'
+                    '<img src="{}" style="max-width: 100px; max-height: 100px; border-radius: 5px;" /><br>'
                     '<small><a href="{}" target="_blank">🖼️ {}</a></small>'
-                    '</div>',
-                    file_url, file_url, file_name
+                    '</div>'
                 )
+                return format_html(html, file_url, file_url, file_name)
+                
             elif obj.is_video():
-                return format_html(
+                html = (
                     '<div style="text-align: center;">'
-                    '<video width="100" height="60" controls style="border-radius: 5px;" '
-                    'onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">'
+                    '<video width="100" height="60" controls style="border-radius: 5px;">'
                     '<source src="{}" type="video/mp4">'
                     '您的瀏覽器不支援影片標籤。'
-                    '</video>'
-                    '<div style="display: none; padding: 20px; background: #f0f0f0; border-radius: 5px;">'
-                    '<i style="font-size: 24px;">🎥</i><br><small>影片載入失敗</small>'
-                    '</div><br>'
+                    '</video><br>'
                     '<small><a href="{}" target="_blank">🎥 {}</a></small>'
-                    '</div>',
-                    file_url, file_url, file_name
+                    '</div>'
                 )
+                return format_html(html, file_url, file_url, file_name)
+                
             else:
-                return format_html(
+                html = (
                     '<div style="text-align: center;">'
                     '<div style="padding: 20px; background: #f0f0f0; border-radius: 5px; margin: 10px 0;">'
                     '<i style="font-size: 24px;">📄</i><br>'
                     '<small><a href="{}" target="_blank">{}</a></small>'
-                    '</div></div>',
-                    file_url, file_name
+                    '</div></div>'
                 )
-        except Exception as e:
+                return format_html(html, file_url, file_name)
+                
+        except Exception:
             return format_html(
                 '<div style="text-align: center; color: #dc3545;">'
                 '<i style="font-size: 24px;">⚠️</i><br>'
@@ -222,7 +215,6 @@ class KYCRecordAdmin(admin.ModelAdmin):
         """顯示檔案詳細資訊"""
         if obj.file:
             try:
-                file_type = ''
                 if obj.is_image():
                     file_type = '🖼️ 圖片檔案'
                 elif obj.is_video():
@@ -230,15 +222,21 @@ class KYCRecordAdmin(admin.ModelAdmin):
                 else:
                     file_type = '📄 一般檔案'
                 
-                return format_html(
+                html = (
                     '<strong>類型：</strong>{}<br>'
                     '<strong>大小：</strong>{}<br>'
-                    '<strong>檔名：</strong>{}',
-                    file_type, obj.get_file_size_display(), os.path.basename(obj.file.name)
+                    '<strong>檔名：</strong>{}'
+                )
+                return format_html(
+                    html, 
+                    file_type, 
+                    obj.get_file_size_display(), 
+                    os.path.basename(obj.file.name)
                 )
             except Exception:
                 return '檔案資訊載入失敗'
         return '無檔案'
+    
     get_file_info.short_description = '檔案資訊'
     
     def save_model(self, request, obj, form, change):
