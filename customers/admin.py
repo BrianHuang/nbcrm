@@ -105,14 +105,8 @@ class KYCRecordInline(admin.TabularInline):
         return True
     
     def has_delete_permission(self, request, obj=None):
-        """根據用戶角色決定刪除權限"""
-        if obj and hasattr(obj, 'uploaded_by'):
-            # 管理員可以刪除所有記錄，一般用戶只能刪除自己上傳的
-            if request.user.is_admin():
-                return True
-            elif hasattr(obj, 'uploaded_by'):
-                return obj.uploaded_by == request.user
-        return request.user.is_admin()
+        """允許刪除 KYC 記錄"""
+        return True
 
 @admin.register(Customer)
 class CustomerAdmin(admin.ModelAdmin):
@@ -130,11 +124,12 @@ class CustomerAdmin(admin.ModelAdmin):
     fieldsets = (
         (None, {
             'fields': (
-                ('name', 'n8_nickname', 'line_nickname'),  # 三個欄位同一列
-                ('n8_email', 'n8_phone'),  # N8信箱和電話同一列  
-                ('notes', 'verified_accounts'),  # 備註和驗證帳戶同一列
-                ('created_at', 'updated_at')  # 系統資訊同一列
-            )
+                ('name', 'n8_nickname', 'line_nickname'),
+                ('n8_email', 'n8_phone'),
+                ('notes', 'verified_accounts'),
+                ('created_at', 'updated_at'),
+            ),
+            'classes': ('horizontal-tight-form',),  # 新增這行
         }),
     )
     

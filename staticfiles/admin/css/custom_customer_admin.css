@@ -1,0 +1,173 @@
+/* 客戶管理自定義 CSS */
+
+/* 統一 KYC 內聯表格字體大小 */
+.tabular table {
+    font-size: 13px !important;
+}
+
+.tabular table th,
+.tabular table td {
+    font-size: 13px !important;
+    padding: 8px 6px !important;
+}
+
+/* KYC 內聯表格欄位寬度調整 */
+.tabular .field-bank_code {
+    width: 90px !important;
+}
+
+.tabular .field-verification_account {
+    width: 130px !important;
+}
+
+.tabular .field-file {
+    width: 150px !important;
+}
+
+.tabular .field-get_file_preview {
+    width: 80px !important;
+    text-align: center;
+}
+
+.tabular .field-file_description {
+    width: 200px !important;
+}
+
+.tabular .field-get_uploaded_by_display {
+    width: 120px !important;
+}
+
+.tabular .field-uploaded_at {
+    width: 120px !important;
+}
+
+/* 檔案上傳欄位樣式 */
+.tabular .field-file input[type="file"] {
+    font-size: 12px;
+    width: 140px;
+}
+
+/* 檔案預覽樣式 */
+.tabular .field-get_file_preview img {
+    border: 1px solid #ddd;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* 客戶表單的文字框調整 */
+.form-row .field-notes textarea,
+.form-row .field-verified_accounts textarea {
+    width: 400px !important;
+    max-width: 400px !important;
+}
+
+/* 新增行的樣式 */
+.tabular .add-row {
+    background-color: #f8f9fa !important;
+}
+
+.tabular .add-row td {
+    border-top: 2px solid #007cba !important;
+}
+
+/* 改善內聯表格的可讀性 */
+.tabular tr.has_original {
+    background: #f9f9f9;
+}
+
+.tabular tr.has_original:hover {
+    background: #f0f8ff;
+}
+
+/* 刪除按鈕樣式 */
+.tabular .delete {
+    text-align: center;
+    width: 60px;
+}
+
+.tabular .delete input[type="checkbox"] {
+    transform: scale(1.2);
+}
+
+/* 表格標題樣式 */
+.tabular thead th {
+    font-size: 13px !important;
+    font-weight: bold;
+    background-color: #f1f1f1;
+}
+
+/* 輸入框樣式統一 */
+.tabular input[type="text"],
+.tabular textarea,
+.tabular select {
+    font-size: 13px !important;
+    padding: 4px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+}
+
+/* Placeholder 樣式 */
+.tabular input::placeholder {
+    color: #999;
+    font-style: italic;
+}
+
+/* 必填欄位標記 */
+.tabular .required label:after {
+    content: " *";
+    color: #e74c3c;
+    font-weight: bold;
+}
+
+/* 錯誤訊息樣式 */
+.tabular .errorlist {
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+    color: #721c24;
+    padding: 4px 8px;
+    border-radius: 3px;
+    font-size: 12px;
+    margin-top: 2px;
+}
+
+/* 幫助文字樣式 */
+.tabular .help {
+    font-size: 11px;
+    color: #666;
+    font-style: italic;
+}
+
+/* 響應式改善 */
+@media (max-width: 768px) {
+    .tabular .field-get_file_preview {
+        width: 60px !important;
+    }
+    
+    .tabular .field-get_file_preview img {
+        max-width: 40px;
+        max-height: 40px;
+    }
+    
+    .form-row .field-notes textarea,
+    .form-row .field-verified_accounts textarea {
+        width: 300px !important;
+    }
+    
+    .tabular .field-file input[type="file"] {
+        width: 120px;
+    }
+}
+
+/* 內聯表單標題樣式 */
+.inline-group h2 {
+    background: linear-gradient(90deg, #007cba, #005a8b);
+    color: white;
+    padding: 10px 15px;
+    margin: 0;
+    border-radius: 5px 5px 0 0;
+    font-size: 14px;
+}
+
+.inline-group .tabular {
+    border: 1px solid #007cba;
+    border-radius: 0 0 5px 5px;
+}
