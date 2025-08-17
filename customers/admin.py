@@ -11,13 +11,13 @@ class CustomerAdminForm(forms.ModelForm):
         model = Customer
         fields = '__all__'
         widgets = {
-            'name': forms.TextInput(attrs={'style': 'width: 120px;'}),  # 縮短姓名欄位
-            'line_nickname': forms.TextInput(attrs={'style': 'width: 120px;'}),  # 縮短Line暱稱
-            'n8_nickname': forms.TextInput(attrs={'style': 'width: 120px;'}),  # 縮短N8暱稱
-            'n8_phone': forms.TextInput(attrs={'style': 'width: 150px;'}),  # N8電話欄位
+            'name': forms.TextInput(attrs={'style': 'width: 150px;'}),  # 縮短姓名欄位
+            'n8_nickname': forms.TextInput(attrs={'style': 'width: 150px;'}),  # 縮短N8暱稱
+            'line_nickname': forms.TextInput(attrs={'style': 'width: 150px;'}),  # 縮短Line暱稱
+            'n8_phone': forms.TextInput(attrs={'style': 'width: 200px;'}),  # N8電話欄位
             'n8_email': forms.EmailInput(attrs={'style': 'width: 200px;'}),  # N8信箱欄位
-            'notes': forms.Textarea(attrs={'rows': 3, 'cols': 50, 'style': 'width: 400px;'}),
-            'verified_accounts': forms.Textarea(attrs={'rows': 3, 'cols': 50, 'style': 'width: 400px;'}),
+            'notes': forms.Textarea(attrs={'rows': 4, 'cols': 50, 'style': 'width: 400px;'}),
+            'verified_accounts': forms.Textarea(attrs={'rows': 4, 'cols': 50, 'style': 'width: 400px;'}),
         }
 
 class KYCRecordInlineForm(forms.ModelForm):
@@ -120,7 +120,7 @@ class CustomerAdmin(admin.ModelAdmin):
     
     list_display = ('get_display_name', 'line_nickname', 'n8_phone', 'n8_email', 'get_kyc_count', 'created_at', 'updated_at')
     list_filter = ('created_at', 'updated_at')
-    search_fields = ('name', 'line_nickname', 'n8_nickname', 'n8_phone', 'n8_email', 'notes', 'verified_accounts')
+    search_fields = ('name', 'n8_nickname', 'line_nickname', 'n8_phone', 'n8_email', 'notes', 'verified_accounts')
     readonly_fields = ('created_at', 'updated_at')
     
     # 添加 KYC 記錄內聯
@@ -130,7 +130,7 @@ class CustomerAdmin(admin.ModelAdmin):
     fieldsets = (
         (None, {
             'fields': (
-                ('name', 'line_nickname', 'n8_nickname'),  # 三個欄位同一列
+                ('name', 'n8_nickname', 'line_nickname'),  # 三個欄位同一列
                 ('n8_email', 'n8_phone'),  # N8信箱和電話同一列  
                 ('notes', 'verified_accounts'),  # 備註和驗證帳戶同一列
                 ('created_at', 'updated_at')  # 系統資訊同一列
