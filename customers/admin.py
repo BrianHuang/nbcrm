@@ -181,6 +181,10 @@ class CustomerAdmin(admin.ModelAdmin):
             return self.readonly_fields
         return ('created_at', 'updated_at')
     
+    def has_delete_permission(self, request, obj=None):
+        """允許刪除客戶"""
+        return True
+    
     class Media:
         css = {
             'all': ('admin/css/custom_customer_layout.css',)

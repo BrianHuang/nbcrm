@@ -265,7 +265,5 @@ class KYCRecordAdmin(admin.ModelAdmin):
         return super().has_change_permission(request, obj)
     
     def has_delete_permission(self, request, obj=None):
-        """檢查刪除權限"""
-        if obj and not request.user.is_admin():
-            return obj.uploaded_by == request.user
-        return super().has_delete_permission(request, obj)
+        """允許所有用戶刪除 KYC 記錄"""
+        return True
